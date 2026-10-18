@@ -6,7 +6,7 @@ A beginner-level data analytics project that combines airport reference data, fl
 
 - Stores airports, aircraft, flights, and airport delay information in a relational MySQL database.
 - Runs 11 SQL queries for flight, airport, route, status, and delay analysis.
-- Displays airport and flight summaries, charts, and report tables in Streamlit.
+- Displays airport and flight summaries, charts, and report tables in Streamlit, with flight search and filters for status, origin, and scheduled departure date.
 - Uses AeroDataBox airport flight information through RapidAPI for a limited flight snapshot.
 
 ## Current project snapshot
@@ -79,6 +79,8 @@ AeroDataBox's free-plan terms require visible attribution and restrict retention
 ## Analysis queries
 
 Open `sql/analysis_queries.sql` in MySQL Workbench and run the queries individually or as a script. They cover aircraft models, busy airports, domestic and international routes, airline statuses, canceled and delayed flights, and airports with no recorded arrivals.
+
+In the dashboard's **Flight reports** tab, search by flight number or airline and filter the flight table by status, origin airport, or scheduled departure date range. These controls filter the flight table; the summary charts continue to describe the full database snapshot.
 
 ## Limitations
 

@@ -47,7 +47,7 @@ The 11 queries examine:
 
 ## 6. Dashboard
 
-The Streamlit dashboard displays airport and flight totals, flights by aircraft model, flight counts by airline and status, domestic/international route counts, delayed-flight percentages, airport summaries, and flight reports.
+The Streamlit dashboard displays airport and flight totals, flights by aircraft model, flight counts by airline and status, domestic/international route counts, delayed-flight percentages, airport summaries, and flight reports. The flight reports tab supports searching by flight number or airline and filtering its flight table by status, origin airport, and scheduled departure date range. Summary charts show the full database snapshot.
 
 The dashboard combines static airport reference information with a temporary flight snapshot. Counts in aircraft-specific views depend on the records that include aircraft details. Dashboard screenshots are kept outside this repository.
 

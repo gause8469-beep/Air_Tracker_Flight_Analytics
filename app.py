@@ -35,6 +35,26 @@ def load_dashboard_data():
 
         cursor.execute(
             """
+            SELECT DISTINCT status
+            FROM flights
+            WHERE status IS NOT NULL AND status <> ''
+            ORDER BY status
+            """
+        )
+        flight_statuses = [row["status"] for row in cursor.fetchall()]
+
+        cursor.execute(
+            """
+            SELECT DISTINCT origin_iata
+            FROM flights
+            WHERE origin_iata IS NOT NULL AND origin_iata <> ''
+            ORDER BY origin_iata
+            """
+        )
+        flight_origins = [row["origin_iata"] for row in cursor.fetchall()]
+
+        cursor.execute(
+            """
             SELECT aircraft.model, COUNT(flights.flight_id) AS total_flights
             FROM flights
             JOIN aircraft
@@ -195,6 +215,8 @@ def load_dashboard_data():
             "airport_count": airport_count,
             "flight_count": flight_count,
             "airports": airports,
+            "flight_statuses": flight_statuses,
+            "flight_origins": flight_origins,
             "flights_by_model": flights_by_model,
             "frequent_aircraft": frequent_aircraft,
             "busy_departure_airports": busy_departure_airports,
@@ -207,6 +229,58 @@ def load_dashboard_data():
             "routes_by_model": routes_by_model,
             "delhi_arrivals": delhi_arrivals,
         }
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def load_filtered_flights(search_text, status, origin, date_range):
+    """Return matching flights using parameterized filter values."""
+    conditions = []
+    parameters = []
+
+    if search_text.strip():
+        conditions.append("(f.flight_number LIKE %s OR f.airline_code LIKE %s)")
+        search_pattern = f"%{search_text.strip()}%"
+        parameters.extend([search_pattern, search_pattern])
+    if status != "All":
+        conditions.append("f.status = %s")
+        parameters.append(status)
+    if origin != "All":
+        conditions.append("f.origin_iata = %s")
+        parameters.append(origin)
+    if date_range:
+        conditions.append("f.scheduled_departure >= %s")
+        parameters.append(date_range[0])
+        if len(date_range) == 2:
+            conditions.append("f.scheduled_departure < DATE_ADD(%s, INTERVAL 1 DAY)")
+            parameters.append(date_range[1])
+
+    filter_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    connection = get_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            f"""
+            SELECT f.flight_number, f.airline_code, f.origin_iata,
+                   origin.name AS origin_name, f.destination_iata,
+                   destination.name AS destination_name,
+                   f.scheduled_departure, f.scheduled_arrival,
+                   f.status, f.aircraft_registration, aircraft.model
+            FROM flights AS f
+            LEFT JOIN airport AS origin
+                ON f.origin_iata = origin.iata_code
+            LEFT JOIN airport AS destination
+                ON f.destination_iata = destination.iata_code
+            LEFT JOIN aircraft
+                ON f.aircraft_registration = aircraft.registration
+            {filter_clause}
+            ORDER BY COALESCE(f.scheduled_departure, f.scheduled_arrival) DESC
+            LIMIT 500
+            """,
+            parameters,
+        )
+        return cursor.fetchall()
     finally:
         cursor.close()
         connection.close()
@@ -314,6 +388,49 @@ try:
             )
 
         with reports_tab:
+            st.markdown("**Search and filter flights**")
+            search_text = st.text_input(
+                "Flight number or airline",
+                placeholder="For example, 6E 849 or 6E",
+                key="flight_search_text",
+            )
+            filter_col1, filter_col2, filter_col3 = st.columns(3)
+            with filter_col1:
+                selected_status = st.selectbox(
+                    "Status",
+                    ["All"] + dashboard_data["flight_statuses"],
+                    key="flight_search_status",
+                )
+            with filter_col2:
+                selected_origin = st.selectbox(
+                    "Origin airport",
+                    ["All"] + dashboard_data["flight_origins"],
+                    key="flight_search_origin",
+                )
+            with filter_col3:
+                date_range = st.date_input(
+                    "Scheduled departure date range",
+                    value=(),
+                    key="flight_search_dates",
+                )
+
+            filtered_flights = load_filtered_flights(
+                search_text, selected_status, selected_origin, date_range
+            )
+
+            st.caption(
+                "Filters apply to this flight table. Summary charts above show "
+                "the full database snapshot. The table is limited to 500 rows."
+            )
+            if filtered_flights:
+                st.dataframe(
+                    pd.DataFrame(filtered_flights),
+                    hide_index=True,
+                    width="stretch",
+                )
+            else:
+                st.info("No flights match these search and filter choices.")
+
             st.markdown("**Five latest scheduled arrivals at DEL**")
             st.dataframe(
                 pd.DataFrame(dashboard_data["delhi_arrivals"]),
