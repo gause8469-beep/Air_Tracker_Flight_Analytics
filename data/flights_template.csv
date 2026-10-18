@@ -1,0 +1,1 @@
+flight_id,flight_number,aircraft_registration,origin_iata,destination_iata,scheduled_departure,actual_departure,scheduled_arrival,actual_arrival,status,airline_code

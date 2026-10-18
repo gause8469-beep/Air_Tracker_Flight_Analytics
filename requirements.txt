@@ -1,0 +1,7 @@
+requests
+pandas
+matplotlib
+seaborn
+streamlit
+python-dotenv
+mysql-connector-python
